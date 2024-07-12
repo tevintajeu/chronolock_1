@@ -1,0 +1,8 @@
+[versions]
+androidGradlePlugin = "8.2.2"
+firebaseDatabase = "21.0.0"
+[libraries]
+firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }  # Ensure this matches your required version
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

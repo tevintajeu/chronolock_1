@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "83570616581",
+    "project_id": "login-signup-805",
+    "storage_bucket": "login-signup-805.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83570616581:android:9ff1f1840b92d0c442af6c",
+        "android_client_info": {
+          "package_name": "com.example.login_signup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa3vrZ3sDISIj2sh1rFew0AHgQ3GMbPVE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:83570616581:android:ff86222cd64d5f0442af6c",
+        "android_client_info": {
+          "package_name": "org.wentura.getflow.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa3vrZ3sDISIj2sh1rFew0AHgQ3GMbPVE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
