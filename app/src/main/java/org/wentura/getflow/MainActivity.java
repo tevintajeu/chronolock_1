@@ -323,6 +323,7 @@ protected void onResume() {
             }
 
             PopupMenu popup = new PopupMenu(MainActivity.this, menuButton);
+            popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());  // Changed to R.menu.menu
 
             popup.setOnMenuItemClickListener(item -> {
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
