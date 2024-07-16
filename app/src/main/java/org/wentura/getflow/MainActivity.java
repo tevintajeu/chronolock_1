@@ -176,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-// ... (continued in the next message due to length constraints)
 @Override
 protected void onResume() {
     super.onResume();
@@ -323,6 +322,7 @@ protected void onResume() {
             }
 
             PopupMenu popup = new PopupMenu(MainActivity.this, menuButton);
+            popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());  // Changed to R.menu.menu
 
             popup.setOnMenuItemClickListener(item -> {
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -365,7 +365,6 @@ protected void onResume() {
         }
     }
 
-// ... (continued in the next message due to length constraints)
 private void showIgnoreBatteryOptimizationDialog() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
         return;
@@ -557,7 +556,6 @@ private void showIgnoreBatteryOptimizationDialog() {
         }
     }
 
-// ... (continued in the next message due to length constraints)
 private void stopTimer() {
     Intent stopIntent = new Intent(this, TimerActionReceiver.class);
     stopIntent.putExtra(Constants.BUTTON_ACTION, Constants.BUTTON_STOP);

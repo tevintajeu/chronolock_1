@@ -18,9 +18,37 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"/>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/activity_name_view"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Activity: Not set"
+            android:textSize="18sp"
+            android:layout_gravity="center_vertical"/>
+
+        <ImageButton
+            android:id="@+id/add_activity_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_input_add"
+            android:contentDescription="Add activity"
+            android:layout_gravity="center_vertical"/>
+
+    </LinearLayout>
+
     <Button
         android:id="@+id/save_button"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Save"/>
+        android:text="Save"
+        android:padding="16dp"
+        android:textSize="18sp"/>
+
 </LinearLayout>
