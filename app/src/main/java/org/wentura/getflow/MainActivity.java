@@ -1,22 +1,6 @@
-/*
- * Copyright (C) 2020 Adrian Miozga <AdrianMiozga@outlook.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- */
-
 package org.wentura.getflow;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
@@ -28,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -44,11 +29,16 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.preference.PreferenceManager;
 
@@ -60,14 +50,20 @@ import org.wentura.getflow.database.Activity;
 import org.wentura.getflow.database.Database;
 import org.wentura.getflow.settings.SettingsActivity;
 import org.wentura.getflow.statistics.StatisticsActivity;
+import org.wentura.getflow.R;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int AUTO_SHOW_FULL_SCREEN_AFTER = 3000;
-    //    private Button skipButton;
+    private static final String CHANNEL_ID = "TimerChannel";
+    private static final int NOTIFICATION_ID = 1;
+    private static final int WAKE_LOCK_PERMISSION_REQUEST_CODE = 1001;
+
     private ImageView workIcon;
     private ImageView breakIcon;
     private TextView timerTextView;
@@ -78,6 +74,16 @@ public class MainActivity extends AppCompatActivity {
     private Handler fullScreenHandler = new Handler();
     private Runnable enterFullScreen = () -> Utility.hideSystemUI(getWindow());
     private ImageButton menuButton;
+
+    private Timer timer;
+    private TimerTask timerTask;
+    private Handler handler;
+
+    private boolean isWorking = true;
+    private boolean isPaused = false;
+    private long timeRemaining = 25 * 60 * 1000; // 25 minutes in milliseconds
+
+    private PowerManager.WakeLock wakeLock;
 
     private final BroadcastReceiver statusReceiver = new BroadcastReceiver() {
         @Override
@@ -96,8 +102,6 @@ public class MainActivity extends AppCompatActivity {
 
                     boolean isBreakState = sharedPreferences.getBoolean(Constants.IS_BREAK_STATE, false);
 
-//                    skipButton.setVisibility(View.VISIBLE);
-
                     if (isBreakState) {
                         workIcon.setVisibility(View.INVISIBLE);
                         breakIcon.setVisibility(View.VISIBLE);
@@ -112,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
                     stopTimerUI();
                     break;
                 case Constants.BUTTON_PAUSE:
-//                    skipButton.setVisibility(View.VISIBLE);
                     startBlinkingAnimation();
                     break;
             }
@@ -125,9 +128,6 @@ public class MainActivity extends AppCompatActivity {
             SharedPreferences sharedPreferences =
                     PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-            // Very rarely, this broadcast delivers a little late. If the user presses the stop
-            // button, and this happens, it will update the timer text view after the stop timer method.
-            // This condition prevents it.
             if (sharedPreferences.getBoolean(Constants.IS_STOP_BUTTON_VISIBLE, false)) {
                 updateTimerTextView(intent.getIntExtra(Constants.TIME_LEFT_INTENT, 0));
             }
@@ -176,26 +176,27 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+// ... (continued in the next message due to length constraints)
+@Override
+protected void onResume() {
+    super.onResume();
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-        if (sharedPreferences.getBoolean(Constants.FULL_SCREEN_MODE, false)) {
-            Utility.hideSystemUI(getWindow());
-        }
-
-        setupUI();
-
-        Utility.toggleKeepScreenOn(this);
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                updateTimerTextView, new IntentFilter(Constants.ON_TICK));
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                statusReceiver, new IntentFilter(Constants.UPDATE_UI));
+    if (sharedPreferences.getBoolean(Constants.FULL_SCREEN_MODE, false)) {
+        Utility.hideSystemUI(getWindow());
     }
+
+    setupUI();
+
+    Utility.toggleKeepScreenOn(this);
+
+    LocalBroadcastManager.getInstance(this).registerReceiver(
+            updateTimerTextView, new IntentFilter(Constants.ON_TICK));
+
+    LocalBroadcastManager.getInstance(this).registerReceiver(
+            statusReceiver, new IntentFilter(Constants.UPDATE_UI));
+}
 
     @SuppressLint("MissingSuperCall")
     @Override
@@ -222,7 +223,6 @@ public class MainActivity extends AppCompatActivity {
         activityTextView = findViewById(R.id.current_activity);
         workIcon = findViewById(R.id.work_icon);
         breakIcon = findViewById(R.id.break_icon);
-//        skipButton = findViewById(R.id.skip_button);
         menuButton = findViewById(R.id.menu);
 
         setupNotificationChannels();
@@ -239,8 +239,6 @@ public class MainActivity extends AppCompatActivity {
 
             if (preferences.getBoolean(Constants.FULL_SCREEN_MODE, false)) {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1) {
-                    // On older APIs, without disabling full screen before entering Activities the animation
-                    // would be bugged out.
                     Utility.showSystemUI(getWindow());
                 }
 
@@ -252,7 +250,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         timerTextView.setOnTouchListener(new OnTouchListener(this) {
-
             @Override
             public void onUp() {
                 isTimerTextViewActionUpCalled = true;
@@ -269,10 +266,8 @@ public class MainActivity extends AppCompatActivity {
                 AnimatorSet animatorSet = startTimerAnimation();
 
                 animatorSet.addListener(new Animator.AnimatorListener() {
-
                     @Override
-                    public void onAnimationStart(Animator animation) {
-                    }
+                    public void onAnimationStart(Animator animation) {}
 
                     @Override
                     public void onAnimationEnd(Animator animation) {
@@ -285,12 +280,10 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onAnimationCancel(Animator animation) {
-                    }
+                    public void onAnimationCancel(Animator animation) {}
 
                     @Override
-                    public void onAnimationRepeat(Animator animation) {
-                    }
+                    public void onAnimationRepeat(Animator animation) {}
                 });
             }
 
@@ -324,30 +317,29 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        skipButton.setOnClickListener(view -> skipTimer());
-
         menuButton.setOnClickListener(view -> {
             if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.FULL_SCREEN_MODE, false)) {
-                // Showing pop up menu doesn't show status bar
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
             }
 
             PopupMenu popup = new PopupMenu(MainActivity.this, menuButton);
 
-            popup.getMenuInflater().inflate(R.menu.menu, popup.getMenu());
-
             popup.setOnMenuItemClickListener(item -> {
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-                if(item.getItemId() == R.id.settings) {
-                        startSettingsActivity();
-                        return true;}
-                    else if (item.getItemId() == R.id.statistics) {
-                        startStatisticsActivity();
-                        return true;}
-                    else if (item.getItemId() == R.id.about) {
-                        startAboutActivity();
-                        return true;
+                int itemId = item.getItemId();
+                if (itemId == R.id.settings) {
+                    startSettingsActivity();
+                    return true;
+                } else if (itemId == R.id.statistics) {
+                    startStatisticsActivity();
+                    return true;
+                } else if (itemId == R.id.scheduled_blocking) {
+                    startActivity(new Intent(MainActivity.this, ScheduledBlockingActivity.class));
+                    return true;
+                } else if (itemId == R.id.about) {
+                    startAboutActivity();
+                    return true;
                 }
                 return false;
             });
@@ -358,46 +350,60 @@ public class MainActivity extends AppCompatActivity {
         showHelpingSnackbars();
 
         showIgnoreBatteryOptimizationDialog();
+
+        handler = new Handler();
+
+        PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "GetFlow::WakeLock");
+
+        createNotificationChannel();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED) {
+            acquireWakeLock();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WAKE_LOCK}, WAKE_LOCK_PERMISSION_REQUEST_CODE);
+        }
     }
 
-    private void showIgnoreBatteryOptimizationDialog() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return;
-        }
-
-        String packageName = getPackageName();
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-        boolean isNeverShowIgnoreBatteryOptimizationDialog =
-                preferences.getBoolean(Constants.NEVER_SHOW_IGNORE_BATTERY_OPTIMIZATION_DIALOG, false);
-
-        if (powerManager == null ||
-                powerManager.isIgnoringBatteryOptimizations(packageName) ||
-                isNeverShowIgnoreBatteryOptimizationDialog) {
-            return;
-        }
-
-        @SuppressLint("BatteryLife")
-        MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.ignore_battery_optimization_title)
-                .setMessage(R.string.ignore_battery_optimization_message)
-                .setPositiveButton(R.string.confirm, (dialog, which) -> {
-                    Intent intent = new Intent();
-                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                    intent.setData(Uri.parse("package:" + packageName));
-                    startActivity(intent);
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .setNeutralButton(R.string.never_show_neutral_button, (dialog, which) -> {
-                    SharedPreferences.Editor preferenceEditor = preferences.edit();
-                    preferenceEditor.putBoolean(Constants.NEVER_SHOW_IGNORE_BATTERY_OPTIMIZATION_DIALOG, true);
-                    preferenceEditor.apply();
-                });
-
-        dialogBuilder.show();
+// ... (continued in the next message due to length constraints)
+private void showIgnoreBatteryOptimizationDialog() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+        return;
     }
+
+    String packageName = getPackageName();
+    PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+
+    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+    boolean isNeverShowIgnoreBatteryOptimizationDialog =
+            preferences.getBoolean(Constants.NEVER_SHOW_IGNORE_BATTERY_OPTIMIZATION_DIALOG, false);
+
+    if (powerManager == null ||
+            powerManager.isIgnoringBatteryOptimizations(packageName) ||
+            isNeverShowIgnoreBatteryOptimizationDialog) {
+        return;
+    }
+
+    @SuppressLint("BatteryLife")
+    MaterialAlertDialogBuilder dialogBuilder = new MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.ignore_battery_optimization_title)
+            .setMessage(R.string.ignore_battery_optimization_message)
+            .setPositiveButton(R.string.confirm, (dialog, which) -> {
+                Intent intent = new Intent();
+                intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                startActivity(intent);
+            })
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.never_show_neutral_button, (dialog, which) -> {
+                SharedPreferences.Editor preferenceEditor = preferences.edit();
+                preferenceEditor.putBoolean(Constants.NEVER_SHOW_IGNORE_BATTERY_OPTIMIZATION_DIALOG, true);
+                preferenceEditor.apply();
+            });
+
+    dialogBuilder.show();
+}
 
     private void showHelpingSnackbars() {
         SharedPreferences sharedPreferences =
@@ -469,6 +475,18 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(updateTimerTextView);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
+    }
+
     private void startSettingsActivity() {
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivity(intent);
@@ -508,7 +526,6 @@ public class MainActivity extends AppCompatActivity {
 
             if (timeLeft == 0) {
                 if (isBreakState) {
-                    // TODO: 26.09.2020 Update this to reflect long break revamp
                     if (workSessionCounter != 0 && workSessionCounter % 4 == 0 && areLongBreaksEnabled) {
                         duration = database.activityDao().getLongBreakDuration(activityId);
                     } else {
@@ -522,12 +539,6 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> updateTimerTextView(timeLeft));
             }
         });
-
-        if (sharedPreferences.getBoolean(Constants.IS_SKIP_BUTTON_VISIBLE, false)) {
-//            skipButton.setVisibility(View.VISIBLE);
-        } else {
-//            skipButton.setVisibility(View.INVISIBLE);
-        }
 
         if (sharedPreferences.getBoolean(Constants.IS_WORK_ICON_VISIBLE, true)) {
             workIcon.setVisibility(View.VISIBLE);
@@ -546,15 +557,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void stopTimer() {
-        Intent stopIntent = new Intent(this, TimerActionReceiver.class);
-        stopIntent.putExtra(Constants.BUTTON_ACTION, Constants.BUTTON_STOP);
-        stopIntent.putExtra(Constants.CURRENT_ACTIVITY_ID_INTENT, getCurrentActivityId());
-        sendBroadcast(stopIntent);
-    }
+// ... (continued in the next message due to length constraints)
+private void stopTimer() {
+    Intent stopIntent = new Intent(this, TimerActionReceiver.class);
+    stopIntent.putExtra(Constants.BUTTON_ACTION, Constants.BUTTON_STOP);
+    stopIntent.putExtra(Constants.CURRENT_ACTIVITY_ID_INTENT, getCurrentActivityId());
+    sendBroadcast(stopIntent);
+}
 
     private void stopTimerUI() {
-//        skipButton.setVisibility(View.INVISIBLE);
         workIcon.setVisibility(View.VISIBLE);
         breakIcon.setVisibility(View.INVISIBLE);
 
@@ -639,5 +650,63 @@ public class MainActivity extends AppCompatActivity {
 
         notificationManager.createNotificationChannel(timerCompletedChannel);
         notificationManager.createNotificationChannel(timerChannel);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == WAKE_LOCK_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                acquireWakeLock();
+            } else {
+                // Permission denied, handle accordingly
+                Toast.makeText(this, "Wake lock permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void acquireWakeLock() {
+        if (wakeLock != null && !wakeLock.isHeld()) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK)
+                    == PackageManager.PERMISSION_GRANTED) {
+                try {
+                    wakeLock.acquire();
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                    // Handle the exception (e.g., request the permission)
+                }
+            } else {
+                // Request the WAKE_LOCK permission
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WAKE_LOCK},
+                        WAKE_LOCK_PERMISSION_REQUEST_CODE);
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void sendNotification(String message) {
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("GetFlow")
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Timer Channel";
+            String description = "Channel for Timer notifications";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 }

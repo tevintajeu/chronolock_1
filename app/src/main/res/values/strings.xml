@@ -110,6 +110,7 @@
     <string name="activities_name">Activities</string>
     <string name="tutorial">Tutorial</string>
     <string name="ignore_optimization_dialog">Ignore battery optimization dialog</string>
+    <string name="scheduled_blocking">Scheduled Blocking</string>
 
     <string-array name="history_spinner">
         <item name="days">@string/days</item>
