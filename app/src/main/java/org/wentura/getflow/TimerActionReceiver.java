@@ -235,6 +235,30 @@ public final class TimerActionReceiver extends BroadcastReceiver {
                 LocalBroadcastManager.getInstance(context).sendBroadcast(updateUI);
                 break;
             }
+            case Constants.ACTION_START_SCHEDULED_BLOCKING: {
+                long scheduledDuration = preferences.getLong(Constants.SCHEDULED_DURATION, 0);
+                String groupName = preferences.getString(Constants.SCHEDULED_GROUP_NAME, "");
+
+                if (scheduledDuration > 0) {
+                    editPreferences.putBoolean(Constants.IS_TIMER_RUNNING, true);
+                    editPreferences.putBoolean(Constants.IS_BREAK_STATE, false);
+                    editPreferences.putInt(Constants.TIME_LEFT, (int) scheduledDuration);
+                    editPreferences.putBoolean(Constants.IS_SCHEDULED_BLOCKING, true);
+                    editPreferences.apply();
+
+                    startNotificationService(context);
+
+                    Intent updateUI = new Intent(Constants.UPDATE_UI);
+                    updateUI.putExtra(Constants.UPDATE_UI_ACTION, Constants.BUTTON_START);
+                    updateUI.putExtra(Constants.SCHEDULED_GROUP_NAME, groupName);
+                    LocalBroadcastManager.getInstance(context).sendBroadcast(updateUI);
+
+                    // Set Do Not Disturb and disable WiFi
+                    Utility.setDoNotDisturb(context, RINGER_MODE_SILENT, 0);  // Use a default activity ID
+                    Utility.setWifiEnabled(context, false, 0);  // Use a default activity ID
+                }
+                break;
+            }
         }
     }
 

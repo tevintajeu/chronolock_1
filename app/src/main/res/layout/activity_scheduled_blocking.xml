@@ -11,16 +11,19 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <CalendarView
-            android:id="@+id/calendar_view"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"/>
+            android:text="Chronolock"
+            android:textSize="16sp"
+            android:layout_marginBottom="4dp"/>
 
-        <TimePicker
-            android:id="@+id/time_picker"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Schedule Blocking"
+            android:textSize="24sp"
+            android:textStyle="bold"
             android:layout_marginBottom="16dp"/>
 
         <LinearLayout
@@ -29,32 +32,111 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <TextView
-                android:id="@+id/activity_name_view"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Activity: Not set"
-                android:textSize="18sp"
-                android:layout_gravity="center_vertical"/>
-
             <ImageButton
-                android:id="@+id/add_activity_button"
+                android:id="@+id/add_group_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@android:drawable/ic_input_add"
-                android:contentDescription="Add activity"
+                android:contentDescription="Add group"
                 android:layout_gravity="center_vertical"/>
+            <TextView
+                android:id="@+id/group_name_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create a Group"
+                android:textSize="18sp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="8dp"/>
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/save_button"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save"
-            android:padding="16dp"
-            android:textSize="18sp"/>
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <NumberPicker
+                android:id="@+id/hour_picker"
+                android:layout_width="wrap_content"
+                android:layout_height="160dp"
+                android:layout_weight="1"/>
+
+            <NumberPicker
+                android:id="@+id/minute_picker"
+                android:layout_width="wrap_content"
+                android:layout_height="160dp"
+                android:layout_weight="1"/>
+
+            <NumberPicker
+                android:id="@+id/ampm_picker"
+                android:layout_width="wrap_content"
+                android:layout_height="160dp"
+                android:layout_weight="1"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="center_vertical">
+
+                <Button
+                    android:id="@+id/start_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Start"
+                    android:layout_marginBottom="8dp"/>
+
+                <Button
+                    android:id="@+id/end_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="End"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <CalendarView
+            android:id="@+id/calendar_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ends"
+            android:textSize="18sp"
+            android:layout_marginBottom="16dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/import_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="import"
+                android:drawableStart="@android:drawable/ic_input_get"
+                android:padding="16dp"/>
+
+            <Space
+                android:layout_width="16dp"
+                android:layout_height="wrap_content"/>
+
+            <Button
+                android:id="@+id/save_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="+ save"
+                android:padding="16dp"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

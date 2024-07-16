@@ -97,6 +97,10 @@ public class MainActivity extends AppCompatActivity {
             switch (action) {
                 case Constants.BUTTON_SKIP:
                 case Constants.BUTTON_START: {
+                    String scheduledGroupName = intent.getStringExtra(Constants.SCHEDULED_GROUP_NAME);
+                    if (scheduledGroupName != null && !scheduledGroupName.isEmpty()) {
+                        activityTextView.setText(getString(R.string.scheduled_blocking, scheduledGroupName));
+                    }
                     SharedPreferences sharedPreferences =
                             PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 

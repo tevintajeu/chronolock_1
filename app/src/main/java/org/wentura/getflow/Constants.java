@@ -136,6 +136,12 @@ public final class Constants {
      */
     public static final int MAX_ITEMS_TO_SHOW_ON_ACTIVITY_CHART = 6;
 
+    public static final String ACTION_START_SCHEDULED_BLOCKING = "org.wentura.getflow.ACTION_START_SCHEDULED_BLOCKING";
+    public static final String SCHEDULED_START_TIME = "SCHEDULED_START_TIME";
+    public static final String SCHEDULED_DURATION = "SCHEDULED_DURATION";
+    public static final String SCHEDULED_GROUP_NAME = "SCHEDULED_GROUP_NAME";
+    public static final String IS_SCHEDULED_BLOCKING = "IS_SCHEDULED_BLOCKING";
+
     // Work and Break Durations in milliseconds
     public static final long WORK_DURATION = 1500000; // 25 minutes in milliseconds
     public static final long BREAK_DURATION = 300000; // 5 minutes in milliseconds
